@@ -1,20 +1,26 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Query
 from service.Base import baseService
 from schema import UserSchema
 from sqlalchemy.orm import Session
-from datetime import timedelta
 from config.JwtConfig import ACCESS_TOKEN_EXPIRE_MINUTES
-from util import TokenUtil, CheckUtil
+from config import EmailConfig
+from util import TokenUtil, CheckUtil, CommonUtil
 from database.User import User as UserORM
 from database.Base import GetDb
-from typing import Annotated
-import hashlib, random
+from redisClient import createRedisCaptchaClient
+from datetime import timedelta
+import hashlib, random, ssl
+import yagmail
 
 
 SALT = "zest"
+redisCaptchaConn = createRedisCaptchaClient()
+
 
 class userService(baseService):
-    """docstring for userService"""
+    context = ssl.create_default_context()
+    context.set_ciphers('DEFAULT')
+            
     def __init__(self):
         self.schema = UserSchema.UserBase
         self.inDB = UserSchema.UserInDB
@@ -42,11 +48,13 @@ class userService(baseService):
             return False
         return user
     
+    # region 账号登录
     async def register(self, request: UserSchema.UserRegistr, db: Session = Depends(GetDb)):
         result = {'msg': 'success', 'ret': 0, 'data': {}}
         try:
-            userAccount, userPassword, checkPassword = request.userAccount, request.userPassword, request.checkPassword
-            check_result = CheckUtil.checkUserRegister(userAccount, userPassword, checkPassword)
+            userAccount, username = request.userAccount, request.username
+            userPassword =  request.userPassword
+            check_result = CheckUtil.checkUserRegister(request)
             if check_result['ret'] == 1:
                 result = check_result
                 return result
@@ -58,6 +66,7 @@ class userService(baseService):
             accessKey = hashlib.sha256(f"{SALT}.{userAccount}.{random.randint(0, 10000)}".encode()).hexdigest()
             secretKey = hashlib.sha256(f"{SALT}.{userAccount}.{random.randint(10001, 10000000)}".encode()).hexdigest()
             user = UserORM(
+                username=username,
                 userAccount=userAccount,
                 userPassword=hashed_password,
                 accessKey=accessKey,
@@ -71,64 +80,113 @@ class userService(baseService):
             print(f'error happen: {e}', flush=True)
             result['msg'], result['ret'] = f'操作失败：{e}', 1
         finally:
+            db.rollback()
             return result
-    """
-    @PostMapping('/register')
-public BaseRseponse<Long> userRegister(@RequestBody UserRegisterResques userRegisterResques) {
-    if (userRegisterResques == null) {
-        throw new PARAMS_ERROR
-    }
-    String userAccount = userRegisterResques.getUserAccount()
-    String userPassword = userRegisterResques.getUserPassword()
-    String checkPassword = userRegisterResques.getCheckPassword()
-    if (StringUtils.isAnyBlank(userAccount, userPassword, checkPassword)) {
-        return null
-    }
-    long result = userService.userRegister(userAccount, userPassword, checkPassword)
-    return ResultUtils.success(result)
-}
+    
+    # region 邮箱注册
+    async def emailRegister(self, request: UserSchema.UserEmailRegistr, db: Session = Depends(GetDb)):
+        result = {'msg': 'success', 'ret': 0, 'data': {}}
+        try:
+            emailAccount, username = request.emailAccount, request.username
+            captcha = request.captcha
+            if not CheckUtil.checkEmailFormat(emailAccount):
+                result['msg'], result['ret'] = '不合法的邮箱地址', 1
+                return result
+            
+            cacheCaptcha = redisCaptchaConn.get(f'captcha:{emailAccount}').decode('utf-8')
+            if not cacheCaptcha:
+                result['msg'], result['ret'] = '验证码已过期，请重新获取', 1
+                return result
+            if captcha != cacheCaptcha:
+                result['msg'], result['ret'] = '输入的验证码有误', 1
+                return result
+            
+            count = db.query(UserORM).filter_by(email=emailAccount).count()
+            if count > 0:
+               result['msg'], result['ret'] = f'邮箱已被注册', 1
+               return result
 
-    SALT = "yupi"
-    """
+            # 需要生成随机账号和随机密码
+            randomPassword = str(CommonUtil.randomNumbers(8))
+            hashedPassword = TokenUtil.getPasswordHash(randomPassword)
+            randomUserAccount = CommonUtil.genRandomUserAccount(12)
+            accessKey = hashlib.sha256(f"{SALT}.{randomUserAccount}.{random.randint(0, 10000)}".encode()).hexdigest()
+            secretKey = hashlib.sha256(f"{SALT}.{randomUserAccount}.{random.randint(10001, 10000000)}".encode()).hexdigest()
+            user = UserORM(
+                username=username,
+                userAccount=randomUserAccount,
+                userPassword=hashedPassword,
+                accessKey=accessKey,
+                secretKey=secretKey,
+                email=emailAccount
+            )
+            db.add(user)
+            db.commit()
+            db.refresh
+            redisCaptchaConn.delete(f'captcha:{emailAccount}')
+            result['data']['id'] = user.id
+            
+        except Exception as e:
+            print(f'error happen: {e}', flush=True)
+            result['msg'], result['ret'] = f'操作失败：{e}', 1
+        finally:
+            db.rollback()
+            return result
 
-    """
-public long userRegister(String userAccount, String userPassword, String checkPassword) {
-    // 校验
-    if (StringUtils.isAnyBlank(userAccount, userPassword, checkPassword)) {
-        return null
-    }
-    if (userAccount.length() < 4) {
-        throw new "用户账号过短"
-    }
-    if (userPassword.length() < 8 || checkPassword.length() < 8) {
-        throw new "用户密码过短"
-    }
-    if (!userPassword.equals(checkPassword)) {
-        throw new "两次输入的密码不一致"
-    }
-    synchronized (userAccount.intern()) {
-        // 账号不能重复
-        QueryWrapper<User> queryWrapper = new QueryWrapper<>()
-        queryWrapper.eq("userAccount", userAccount)
-        long count = uuserMapper.selectCount(QueryWrapper)
-        if (count > 0) {
-            throw new "账号已存在"
-        }
-        // 加密
-        String encryptPassword = DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes())
-        //分配 ak, sk 加密算法生成
-        String accessKey = DigestUtils.md5(SALT + userAccount + RandomUtil.randomNumber(length = 5))
-        String secretKey = DigestUtils.md5(SALT + userAccount + RandomUtil.randomNumber(length = 8))
-        // 加入数据
-        User user = new User()
-        user.setUserAccount(userAccount)
-        // set password, accessKey, secretKey
-        boolean saveResult = this.save(user)
-        if (!saveResult) {
-            throw new "注册失败，数据库错误"
-        }
-        return user.getId()
-    }
-}
+    # region 获取验证码
+    async def getCaptcha(self, emailAccount: str = Query(regex=EmailConfig.EMAIL_REGEX)):
+        result = {'msg': 'success', 'ret': 0, 'data': {}}
+        try:
+            captcha = CommonUtil.randomNumbers(6)
 
-    """
+            yag=yagmail.SMTP(
+                user=EmailConfig.FORM,
+                password=EmailConfig.PASSWORD,
+                host=EmailConfig.HOST,
+                context=self.context)
+            yag.send(to=emailAccount, subject=EmailConfig.SUBJECT, contents=f'您的验证码是\n {captcha}')
+            redisCaptchaConn.set(f'captcha:{emailAccount}', captcha, ex=5*60)
+        except Exception as e:
+            print(f'error happen: {e}', flush=True)
+            result['msg'], result['ret'] = f'操作失败：{e}', 1
+        finally:
+            if not yag.is_closed:
+                yag.close()
+            return result
+    
+    # region 邮箱登录
+    async def emailLogin(self, request: UserSchema.EmailLoginRequest, db: Session = Depends(GetDb)):
+        result = {'msg': 'success', 'ret': 0, 'data': {}}
+        try:
+            emailAccount, captcha = request.emailAccount, request.captcha
+            if not CheckUtil.checkEmailFormat(emailAccount):
+                result['msg'], result['ret'] = '不合法的邮箱地址', 1
+                return result
+            cacheCaptcha = redisCaptchaConn.get(f'captcha:{emailAccount}').decode('utf-8')
+            if not cacheCaptcha:
+                result['msg'], result['ret'] = '验证码已过期，请重新获取', 1
+                return result
+            if captcha != cacheCaptcha:
+                result['msg'], result['ret'] = '输入的验证码有误', 1
+                return result
+            user = db.query(UserORM).filter_by(email=emailAccount).first()
+            if not user:
+                result['msg'], result['ret'] = '账号不存在或未绑定邮箱', 1
+                return result
+            # todo 0 改为 Emnu 类
+            if user.userStatus != 0:
+                result['msg'], result['ret'] = '账号非正常状态', 1
+                return result
+            # 和账号密保登模式一样生成一个 JWT
+            access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+            access_token = TokenUtil.creatAccessToken(
+                data={'sub': user.userAccount},
+                expires_delta=access_token_expires
+            )
+            result['data'] = UserSchema.Token(access_token=access_token, token_type='bearer', ret=0)
+            redisCaptchaConn.delete(f'captcha:{emailAccount}')
+        except Exception as e:
+            print(f'error happen: {e}', flush=True)
+            result['msg'], result['ret'] = f'操作失败：{e}', 1
+        finally:
+            return result

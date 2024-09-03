@@ -41,7 +41,7 @@ export async function userTokenPost(
         headers: {
             'Content-Type': 'application/json',
         },
-        data: body, 
+        data: body,
         ...(options || {}),
     });
 }
@@ -49,5 +49,60 @@ export async function userTokenPost(
 export async function userCurrentGet() {
     return request<API.UserResponse>('/user/current', {
         method: 'GET',
+    });
+}
+
+export async function userEmailLoginUsingPOST(
+    body: UserAPI.EmailLoginRequest,
+    options?: { [key: string]: any },
+) {
+    return request<API.EmailLoginTokenResponse>('/user/email/login', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        data: body,
+        ...(options || {}),
+    });
+}
+
+export async function getCaptchaUsingGET(
+    params: API.getCaptchaUsingGETParams,
+    options?: { [key: string]: any },
+) {
+    return request<API.BaseResponse>('/user/getCaptcha', {
+        method: 'GET',
+        params: {
+            ...params,
+        },
+        ...(options || {}),
+    });
+}
+
+export async function userRegisterUsingPOST(
+    body: UserAPI.RegisterRequest,
+    options?: { [key: string]: any },
+) {
+    return request<UserAPI.RegisterResponse>('/user/register', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        data: body,
+        ...(options || {}),
+    });
+}
+
+export async function userEmailRegisterUsingPOST(
+    body: UserAPI.EmailRegisterRequest,
+    options?: { [key: string]: any },
+) {
+    return request<UserAPI.RegisterResponse>('/user/email/register', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        data: body,
+        ...(options || {}),
     });
 }

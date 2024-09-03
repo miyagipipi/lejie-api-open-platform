@@ -19,17 +19,11 @@ declare namespace API {
     };
 
     type UserCreate = {
-        /** Username */
         username: string;
-        /** Useraccount */
         userAccount: string;
-        /** Userpassword */
         userPassword: string;
-        /** Gender */
         gender: number;
-        /** Phone */
         phone: string;
-        /** Email */
         email: string;
     };
 
@@ -49,16 +43,12 @@ declare namespace API {
     }
 
     type ValidationError = {
-        /** Location */
         loc: (string | number)[];
-        /** Message */
         msg: string;
-        /** Error Type */
         type: string;
     };
 
     type UserToken = {
-        /** Useraccount */
         username: string;
         password: string;
     };
@@ -67,6 +57,12 @@ declare namespace API {
         access_token: string;
         token_type: string;
         ret: number;
+    }
+
+    type EmailLoginTokenResponse = {
+        msg: string;
+        ret: number;
+        data: UserTokenResponse;
     }
 
     type InterfaceInfo = {
@@ -102,7 +98,7 @@ declare namespace API {
         data: Array<InterfaceInfo>;
     }
 
-    type InterfaceInfoResponse = {
+    type BaseResponse = {
         msg: string;
         ret: number;
         data?: object;
@@ -116,5 +112,9 @@ declare namespace API {
         msg: string;
         ret: number;
         data: InterfaceInfo;
+    }
+
+    type getCaptchaUsingGETParams = {
+        emailAccount: string;
     }
 }

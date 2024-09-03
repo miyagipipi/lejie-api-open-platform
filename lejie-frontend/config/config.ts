@@ -75,8 +75,15 @@ export default defineConfig({
    */
   title: 'Ant Design Pro',
   layout: {
-    locale: true,
-    ...defaultSettings,
+    "navTheme": "light",
+    "layout": "top",
+    "contentWidth": "Fluid",
+    "fixedHeader": false,
+    "fixSiderbar": true,
+    "colorPrimary": "#1677FF",
+    "splitMenus": false
+    // locale: true,
+    // ...defaultSettings,
   },
   /**
    * @name moment2dayjs 插件

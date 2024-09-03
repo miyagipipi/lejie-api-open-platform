@@ -3,6 +3,11 @@ from typing import Optional
 from datetime import datetime
 
 
+class NormalResponse(BaseModel):
+    msg: str
+    ret: int
+    data: dict = {}
+
 class UserBase(BaseModel):
     id: int
     username: Optional[str] = None
@@ -23,10 +28,6 @@ class UserCreate(BaseModel):
     gender: int
     phone: str
     email: str
-
-class UserLogin(BaseModel):
-    userAccount: str
-    userPassword: str
 
 class UserInDBBase(UserBase):
     id: int
@@ -69,5 +70,17 @@ class TokenRequest(BaseModel):
     username: str
     password: str
 
-class UserRegistr(UserLogin):
+class UserRegistr(BaseModel):
+    username: str
+    userAccount: str
+    userPassword: str
     checkPassword: str
+    invitationCode: str | None
+
+class EmailLoginRequest(BaseModel):
+    captcha: str
+    emailAccount: str
+
+class UserEmailRegistr(EmailLoginRequest):
+    username: str
+    invitationCode: str | None

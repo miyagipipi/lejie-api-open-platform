@@ -17,8 +17,13 @@ export async function getInitialState(): Promise<InitialState> {
     const state: InitialState = {
         loginUser: undefined,
         settings: {
+            "navTheme": "light",
             "layout": "top",
             "contentWidth": "Fluid",
+            "fixedHeader": false,
+            "fixSiderbar": true,
+            "colorPrimary": "#1677FF",
+            "splitMenus": false
         }
     }
     try {

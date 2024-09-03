@@ -21,7 +21,7 @@ export async function addInterfeceInfoUsingPost(
     body: API.InterfaceInfo,
     options?: { [key: string]: any },
 ) {
-    return request<API.InterfaceInfoResponse>('/interfaceInfo/add', {
+    return request<API.BaseResponse>('/interfaceInfo/add', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -35,7 +35,7 @@ export async function updateInterfeceInfoUsingPost(
     body: API.InterfaceInfo,
     options?: { [key: string]: any },
 ) {
-    return request<API.InterfaceInfoResponse>('/interfaceInfo/update', {
+    return request<API.BaseResponse>('/interfaceInfo/update', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -49,7 +49,7 @@ export async function deleteInterfeceInfoUsingPost(
     body: API.InterfaceInfoId,
     options?: { [key: string]: any },
 ) {
-    return request<API.InterfaceInfoResponse>('/interfaceInfo/delete', {
+    return request<API.BaseResponse>('/interfaceInfo/delete', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -62,7 +62,7 @@ export async function deleteInterfeceInfoUsingPost(
 export async function onlineInterfeceInfoUsingPost(
     body: API.IdRequest
 ) {
-    return request<API.InterfaceInfoResponse>('/interfaceInfo/online', {
+    return request<API.BaseResponse>('/interfaceInfo/online', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -74,7 +74,7 @@ export async function onlineInterfeceInfoUsingPost(
 export async function offlineInterfeceInfoUsingPost(
     body: API.IdRequest
 ) {
-    return request<API.InterfaceInfoResponse>('/interfaceInfo/offline', {
+    return request<API.BaseResponse>('/interfaceInfo/offline', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

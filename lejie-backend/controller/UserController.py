@@ -1,13 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database.Base import GetDb
-# from database.Base import GetAsyncDB, AsyncSessionLocal
 from database.User import User
 from schema import UserSchema
 from typing import Annotated
 from service import UserService
-# from sqlalchemy.ext.asyncio import AsyncSession
-# from sqlalchemy import select
 
 
 api = APIRouter(prefix='/user')
@@ -43,4 +40,18 @@ async def userCurrent(current_user: Annotated[UserSchema.UserInDBResponse, Depen
 
 @api.post('/register')
 async def userRegister(result: Annotated[UserSchema.UserResponse, Depends(user_service.register)]):
+    return result
+
+@api.post('/email/register')
+async def userRegister(result: Annotated[UserSchema.UserResponse, Depends(user_service.emailRegister)]):
+    return result
+
+
+@api.get('/getCaptcha')
+async def userRegister(result: Annotated[UserSchema.NormalResponse, Depends(user_service.getCaptcha)]):
+    return result
+
+
+@api.post('/email/login')
+def userEmaliLogin(result: Annotated[UserSchema.TokenResponse, Depends(user_service.emailLogin)]):
     return result
