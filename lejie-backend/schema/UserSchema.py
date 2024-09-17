@@ -84,3 +84,7 @@ class EmailLoginRequest(BaseModel):
 class UserEmailRegistr(EmailLoginRequest):
     username: str
     invitationCode: str | None
+
+class EmailBindRequest(BaseModel):
+    captcha: str
+    emailAccount: str

@@ -106,3 +106,17 @@ export async function userEmailRegisterUsingPOST(
         ...(options || {}),
     });
 }
+
+export async function userEmailBindUsingPOST(
+    body: UserAPI.EmailBindRequest,
+    options?: { [key: string]: any },
+) {
+    return request<UserAPI.EmailUnBindResponse>('/user/email/bind', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        data: body,
+        ...(options || {}),
+    });
+}

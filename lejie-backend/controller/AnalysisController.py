@@ -4,7 +4,6 @@ from typing import Annotated
 from service.AnalysisService import analysisService
 
 
-
 api = APIRouter(prefix='/analysis')
 analysis_service = analysisService()
 

@@ -26,4 +26,13 @@ declare namespace UserAPI {
         userName: string
         invitationCode?: string
     }
+
+    type EmailBindRequest = {
+        captcha?: string;
+        emailAccount?: string;
+    };
+
+    type OnlyEmailAccount = {
+        emailAccount: string;
+    }
 }

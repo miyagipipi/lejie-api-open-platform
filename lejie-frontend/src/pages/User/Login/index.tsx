@@ -91,15 +91,13 @@ const Login: React.FC = () => {
         if (res.ret === 0 && res.data) {
             message.success('登录成功！');
             const urlParams = new URL(window.location.href).searchParams;
-            history.push(urlParams.get('redirect') || '/');
             setInitialState({
                 loginUser: res.data,
                 settings: initialState?.settings
             });
-            return;
+            history.push(urlParams.get('redirect') || '/');
         } else {
             message.error(res.msg)
-            return
         }
     }
 
@@ -114,9 +112,9 @@ const Login: React.FC = () => {
                 localStorage.setItem('access_token', tokenRes.access_token)
             }
             await doLoading()
-        } catch (error) {
+        } catch (error: any) {
             const defaultLoginFailureMessage = '登录失败，请重试！';
-            message.error(defaultLoginFailureMessage);
+            message.error(error.response.data?.detail || defaultLoginFailureMessage);
         }
     };
 

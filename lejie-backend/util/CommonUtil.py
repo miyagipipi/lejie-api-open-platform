@@ -13,3 +13,11 @@ def randomNumbers(n: int) -> int:
 def genRandomUserAccount(length: int) -> str:
     letters = string.ascii_letters  # 包含所有大小写字母
     return ''.join(random.choice(letters) for i in range(length))
+
+
+def errorResult(msg='error', data={}):
+    return {'ret': 1, 'msg': msg, 'data': data}
+
+
+def successResult(msg='success', data={}):
+    return {'ret': 0, 'msg': msg, 'data': data}

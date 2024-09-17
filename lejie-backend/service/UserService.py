@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status, Query
+from fastapi import Depends, HTTPException, status, Query, Header
 from service.Base import baseService
 from schema import UserSchema
 from sqlalchemy.orm import Session
@@ -11,6 +11,7 @@ from redisClient import createRedisCaptchaClient
 from datetime import timedelta
 import hashlib, random, ssl
 import yagmail
+from typing import Annotated
 
 
 SALT = "zest"
@@ -30,7 +31,7 @@ class userService(baseService):
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect username or password",
+                detail="账号或密码不正确",
                 headers={"WWW-Authenticate": "Bearer"},
             )
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -190,3 +191,39 @@ class userService(baseService):
             result['msg'], result['ret'] = f'操作失败：{e}', 1
         finally:
             return result
+    
+    async def bindEmail(
+        self,
+        request: UserSchema.EmailBindRequest,
+        authorization: Annotated[str | None, Header()] = '',
+        db: Session = Depends(GetDb)):
+        try:
+            emailAccount, captcha = request.emailAccount, request.captcha
+            if not CheckUtil.checkEmailFormat(emailAccount):
+                return CommonUtil.errorResult('不合法的邮箱地址')
+            
+            cacheCaptcha = redisCaptchaConn.get(f'captcha:{emailAccount}').decode('utf-8')
+            if not cacheCaptcha:
+                return CommonUtil.errorResult('验证码已过期，请重新获取')
+            if captcha != cacheCaptcha:
+                return CommonUtil.errorResult('输入的验证码不正确')
+            
+            userAccount = TokenUtil.getUsernameByToken(authorization.split(' ')[-1])
+            loginUser = self.getUser(db, userAccount)
+            if loginUser.email != '' and emailAccount == loginUser.email:
+                return CommonUtil.errorResult('该账号已绑定此邮箱,请更换新的邮箱！')
+
+            emailCountQuery = db.query(UserORM).filter_by(email=emailAccount, isDelete=0).count()
+            if emailCountQuery > 0:
+                return CommonUtil.errorResult('此邮箱已被绑定,请更换新的邮箱！')
+            
+            user = db.query(UserORM).get(loginUser.id)
+            user.email = emailAccount
+            db.commit()
+            redisCaptchaConn.delete(f'captcha:{emailAccount}')
+            return CommonUtil.successResult(data={'emailAccount': emailAccount})
+        except Exception as e:
+            print(f'error happen: {e}', flush=True)
+            db.rollback()
+            return CommonUtil.errorResult(msg=f'操作失败：{e}')
+        

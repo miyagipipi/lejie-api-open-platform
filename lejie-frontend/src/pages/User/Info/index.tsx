@@ -1,12 +1,23 @@
+import { EditOutlined } from '@ant-design/icons';
 import { ProCard } from '@ant-design/pro-components';
 import { useModel } from '@umijs/max';
-import { Button, Spin, Tooltip, TourProps } from 'antd';
+import { Button, Descriptions, message, Spin, Tooltip, Tour, TourProps } from 'antd';
+import Paragraph from 'antd/es/typography/Paragraph';
 import React, { useEffect, useRef, useState } from 'react';
+import EmailModal from '@/components/EmailModal'
+import { userEmailBindUsingPOST, userEmailUnBindUsingPOST } from '@/services/lejie-backend/user';
+import { InitialStateType } from '@/.umi/plugin-initialState/@@initialState';
 
+export const valueLength = (val: any) => {
+    return val && val.trim().length > 0
+}
 
 const UserInfo: React.FC = () => {
     const [loading, setLoading] = useState(true)
     const { initialState, setInitialState } = useModel('@@initialState');
+    const {loginUser} = initialState || {}
+    const [userName, setUserName] = useState<string | undefined | null>('')
+    const [openEmailModal, setOpenEmailModal] = useState(false)
 
     const ref1 = useRef(null)
     const ref2 = useRef(null);
@@ -39,6 +50,8 @@ const UserInfo: React.FC = () => {
 
     const loadData = async () => {
         setLoading(true)
+        
+        setUserName(loginUser?.username)
 
         setLoading(false)
     }
@@ -46,6 +59,22 @@ const UserInfo: React.FC = () => {
     useEffect(() => {
         loadData()
     }, [])
+
+    const handleBindEmailSubmit = async (values: UserAPI.EmailBindRequest) => {
+        const res = await userEmailBindUsingPOST({...values})
+        if (res.ret === 0 && res.data) {
+            const newInitialState: InitialStateType  = {
+                ...initialState,
+                loginUser: {
+                    ...initialState?.loginUser,
+                    email: res.data.emailAccount
+                } as API.User
+            }
+            setInitialState(newInitialState)
+            message.success('绑定成功')
+            setOpenEmailModal(false)
+        }
+    };
 
     return (
         <Spin spinning={loading}>
@@ -61,7 +90,7 @@ const UserInfo: React.FC = () => {
                             <Tooltip title={"用于接收订单信息"}
                             >
                                 <Button onClick={() => {
-                                    // setOpenEmailModal(true)
+                                    setOpenEmailModal(true)
                                 }}>
                                     {initialState?.loginUser?.email ? "换绑邮箱" : "绑定邮箱"}
                                 </Button>
@@ -80,9 +109,44 @@ const UserInfo: React.FC = () => {
                     type='inner'
                     bordered
                 >
-
+                    <Descriptions column={1}>
+                        <div>
+                            <h4>昵称：</h4>
+                            <Paragraph
+                                editable={
+                                    {
+                                        icon: <EditOutlined />,
+                                        tooltip: '编辑',
+                                        onChange: (value: any) => {
+                                            setUserName(value)
+                                        }
+                                    }
+                                }>
+                                {valueLength(userName) ? userName : 'unknow user'}
+                            </Paragraph>
+                        </div>
+                        <div>
+                            <Tooltip title={'邀请好友注册，双方各得100积分'}></Tooltip>
+                        </div>
+                        <div>
+                            <h4>我的ID: </h4>
+                            <Paragraph>{loginUser?.id}</Paragraph>
+                        </div>
+                        <div>
+                            <h4>我的邮箱: </h4>
+                            <Paragraph copyable={valueLength(loginUser?.email)}>
+                                {valueLength(loginUser?.email) ? loginUser?.email : '未绑定邮箱'}
+                            </Paragraph>
+                        </div>
+                    </Descriptions>
                 </ProCard>
             </ProCard>
+            <EmailModal
+                open={openEmailModal}
+                onCancel={() => setOpenEmailModal(false)}
+                data={loginUser}
+                bindSubmit={handleBindEmailSubmit}
+            />
         </Spin>
     )
 

@@ -55,3 +55,8 @@ async def userRegister(result: Annotated[UserSchema.NormalResponse, Depends(user
 @api.post('/email/login')
 def userEmaliLogin(result: Annotated[UserSchema.TokenResponse, Depends(user_service.emailLogin)]):
     return result
+
+
+@api.post('/email/bind')
+def userEmaliBind(result: Annotated[UserSchema.NormalResponse, Depends(user_service.bindEmail)]):
+    return result
